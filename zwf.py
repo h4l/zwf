@@ -1,13 +1,15 @@
 """
 Tools for Zwift WAD files.
 """
+from typing import Callable, Dict, Union
 import sys
 import traceback
 import warnings
 import os
 import io
 import struct
-import glob
+import fnmatch
+from pathlib import Path
 
 import docopt
 from hurry.filesize import size as human_readable_size
@@ -18,12 +20,14 @@ WAD_MAGIC = b'ZWF!'
 
 docopt_usage = """
 usage: 
-    zwf list [-Hl] <file>
-    zwf extract <file> <dir> <glob>
+    zwf list [options] <file>
+    zwf extract [options] <file> <dir> [<glob>]
 
 options:
-    -l  List more information
-    -H  Show file sizes in human-readable form
+    -l           List more information
+    -H           Show file sizes in human-readable form
+    --verbose    Print more info
+    --traceback  Print stack trace on errors
 """
 
 
@@ -78,7 +82,8 @@ def cstring(data):
     return data[:end]
 
 
-def read_wad_entry(wad, ptr, include_body=True):
+def read_wad_entry(wad, ptr,
+                   include_body: Union[bool, Callable[[Dict], bool]] = True):
     f = wad['file']
     assert ptr in wad['entry_pointers']
 
@@ -95,7 +100,7 @@ def read_wad_entry(wad, ptr, include_body=True):
         'size': size
     }
 
-    if include_body:
+    if callable(include_body) and include_body(entry) or include_body:
         entry['body'] = f.read(size)
 
     return entry
@@ -116,10 +121,37 @@ def list_wad(wad, long_listing=False, human_readable_sizes=False):
             print(entry["path"])
 
 
-def main():
-    try:
-        args = docopt.docopt(docopt_usage)
+def extract_wad(wad, dest_dir: Path, entry_predicate: Callable[[Dict], bool],
+                verbose=False):
+    if not dest_dir.is_dir():
+        raise CommandError(
+            f'Destination directory is not an existing directory')
+    if next(dest_dir.iterdir(), None) is not None:
+        raise CommandError(f'Destination dir is not empty')
 
+    for ptr in wad['entry_pointers']:
+        entry = read_wad_entry(wad, ptr, include_body=entry_predicate)
+
+        if 'body' not in entry:
+            continue
+
+        entry_path = dest_dir / entry['path']
+        if dest_dir not in entry_path.parents:
+            raise CommandError(f'Entry would extract out of destination '
+                               f'directory: {entry["path"]!r}')
+
+        if verbose:
+            print(f'  extracting: {entry["path"]} ... ', end='', flush=True)
+        entry_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(entry_path, 'wb') as f:
+            f.write(entry['body'])
+        if verbose:
+            print(f'done')
+
+
+def main():
+    args = docopt.docopt(docopt_usage)
+    try:
         f = open(args['<file>'], 'rb')
 
         wad = read_wad(f)
@@ -127,11 +159,28 @@ def main():
         if args['list']:
             list_wad(wad, long_listing=args['-l'],
                      human_readable_sizes=args['-H'])
+        elif args['extract']:
+            dest = Path(args['<dir>'])
+            if args['--verbose']:
+                print(f'  Zwift WAD:  {args["<file>"]}')
+                print(f'Destination:  {dest}')
+
+            predicate = lambda x: True
+            if args['<glob>']:
+                glob = args['<glob>']
+                predicate = lambda entry: fnmatch.fnmatchcase(entry['path'],
+                                                              glob)
+
+            extract_wad(wad, dest, entry_predicate=predicate,
+                        verbose=args['--verbose'])
         else:
             raise NotImplementedError()
     except CommandError as e:
-        print(f'Error: {e}\nTraceback follows:', file=sys.stderr)
-        traceback.print_exc(e, sys.stderr)
+        print(f'Fatal: {e}', file=sys.stderr)
+
+        if args['--traceback']:
+            print('\nTraceback follows:\n', file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)
 
 
 if __name__ == '__main__':

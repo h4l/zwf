@@ -1,0 +1,53 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "zwf"
+home-page = "https://github.com/h4l/zwf"
+author = "Hal Blackburn"
+author-email = "hal.blackburn@gmail.com"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only"
+]
+requires-python = "~=3.6"
+description-file = "README.rst"
+
+requires = [
+    "docopt",
+    "hurry.filesize"
+]
+
+[tool.flit.metadata.requires-extra]
+dev = [
+    "flake8",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+doc = [
+    "sphinx"
+]
+
+[tool.flit.scripts]
+zwf = "zwf:main"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = lint,py36,py37
+skip_missing_interpreters = true
+isolated_build = true
+
+[testenv]
+deps =
+extras = test
+commands = pytest --doctest-modules --doctest-glob '*.rst'
+
+[testenv:lint]
+deps =
+extras = dev
+commands = flake8
+"""

@@ -1,53 +1,26 @@
-[build-system]
-requires = ["flit"]
-build-backend = "flit.buildapi"
-
-[tool.flit.metadata]
-module = "zwf"
-home-page = "https://github.com/h4l/zwf"
-author = "Hal Blackburn"
-author-email = "hal.blackburn@gmail.com"
+[tool.poetry]
+name = "zwf"
+version = "0.1.0"
+description = "Tools for Zwift WAD files"
+authors = ["Hal Blackburn <hal.blackburn@gmail.com>"]
+homepage = "https://github.com/h4l/zwf"
+license = "MIT"
+readme = "README.md"
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only"
 ]
-requires-python = "~=3.6"
-description-file = "README.rst"
 
-requires = [
-    "docopt",
-    "hurry.filesize"
-]
-
-[tool.flit.metadata.requires-extra]
-dev = [
-    "flake8",
-]
-test = [
-    "pytest",
-    "pytest-cov",
-]
-doc = [
-    "sphinx"
-]
-
-[tool.flit.scripts]
+[tool.poetry.scripts]
 zwf = "zwf:main"
 
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = lint,py36,py37
-skip_missing_interpreters = true
-isolated_build = true
+[tool.poetry.dependencies]
+python = "^3.6"
+docopt = "^0.6.2"
+"hurry.filesize" = "^0.9"
 
-[testenv]
-deps =
-extras = test
-commands = pytest --doctest-modules --doctest-glob '*.rst'
+[tool.poetry.dev-dependencies]
+flake8 = "^3.8.4"
 
-[testenv:lint]
-deps =
-extras = dev
-commands = flake8
-"""
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

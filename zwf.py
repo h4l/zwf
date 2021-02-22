@@ -18,7 +18,7 @@ __version__ = '0.0.0'
 
 WAD_MAGIC = b'ZWF!'
 
-docopt_usage = """
+docopt_usage = __doc__ + """
 usage: 
     zwf list [options] <file>
     zwf extract [options] <file> <dir> [<glob>]

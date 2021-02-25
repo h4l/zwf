@@ -32,3 +32,7 @@ options:
     --verbose    Print more info
     --traceback  Print stack trace on errors
 ```
+
+## Related projects
+
+* https://gitlab.com/r3dey3/zwift-utils — Can decompress and extract Zwift .wad files
